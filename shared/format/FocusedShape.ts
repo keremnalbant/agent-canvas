@@ -122,6 +122,24 @@ const FocusedDrawShape = z
 
 export type FocusedDrawShape = z.infer<typeof FocusedDrawShape>
 
+const FocusedImageShape = z
+	.object({
+		_type: z.literal('image'),
+		h: z.number(),
+		note: z.string(),
+		shapeId: SimpleShapeIdSchema,
+		w: z.number(),
+		x: z.number(),
+		y: z.number(),
+	})
+	.meta({
+		title: 'Image Shape',
+		description:
+			'An image on the canvas. The agent can reference this shape by its shapeId when using the edit-image action to edit it. The agent cannot create image shapes directly; use the generate-image or edit-image actions instead.',
+	})
+
+export type FocusedImageShape = z.infer<typeof FocusedImageShape>
+
 const FocusedUnknownShape = z
 	.object({
 		_type: z.literal('unknown'),
@@ -142,6 +160,7 @@ export type FocusedUnknownShape = z.infer<typeof FocusedUnknownShape>
 const FOCUSED_SHAPES = [
 	FocusedDrawShape,
 	FocusedGeoShape,
+	FocusedImageShape,
 	FocusedLineShape,
 	FocusedTextShape,
 	FocusedArrowShape,

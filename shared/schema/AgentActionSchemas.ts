@@ -7,35 +7,54 @@ import {
 } from "../format/FocusedShape";
 import { SimpleShapeIdSchema, TodoIdSchema } from "../types/ids-schema";
 
-// Generate Image Action
+// Generate Image Action (text-to-image)
 export const GenerateImageAction = z
   .object({
     _type: z.literal("generate-image"),
     intent: z.string(),
     prompt: z.string(),
-    input_image: z.string(),
-    input_image_2: z.string().optional(),
-    input_image_3: z.string().optional(),
-    input_image_4: z.string().optional(),
-    input_image_5: z.string().optional(),
-    input_image_6: z.string().optional(),
-    input_image_7: z.string().optional(),
-    input_image_8: z.string().optional(),
+    x: z.number(),
+    y: z.number(),
     width: z.number().optional(),
     height: z.number().optional(),
     seed: z.number().optional(),
-    safety_tolerance: z.number().optional().default(2),
-    output_format: z.enum(["jpeg", "png"]).optional().default("png"),
-    guidance: z.number().optional().default(4.5),
-    steps: z.number().optional().default(50),
   })
   .meta({
     title: "Generate Image",
-    description: "The AI generates or edits an image.",
-    _systemPromptCategory: "edit",
+    description:
+      "Generate a new image from a text prompt and place it on the canvas. Specify x and y for where to place the image.",
   });
 
 export type GenerateImageAction = z.infer<typeof GenerateImageAction>;
+
+// Edit Image Action (edit existing image)
+export const EditImageAction = z
+  .object({
+    _type: z.literal("edit-image"),
+    intent: z.string(),
+    prompt: z.string(),
+    input_image: SimpleShapeIdSchema,
+    input_image_2: SimpleShapeIdSchema.optional(),
+    input_image_3: SimpleShapeIdSchema.optional(),
+    input_image_4: SimpleShapeIdSchema.optional(),
+    input_image_5: SimpleShapeIdSchema.optional(),
+    input_image_6: SimpleShapeIdSchema.optional(),
+    input_image_7: SimpleShapeIdSchema.optional(),
+    input_image_8: SimpleShapeIdSchema.optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    seed: z.number().optional(),
+  })
+  .meta({
+    title: "Edit Image",
+    description:
+      "Edit an existing image on the canvas using AI. Provide the shapeId of the image to edit as input_image and a prompt describing the desired changes. You can reference up to 8 images by their shapeIds.",
+    _systemPromptCategory: "edit",
+  });
+
+export type EditImageAction = z.infer<typeof EditImageAction>;
 
 /**
  * `_systemPromptCategory` is used for system prompt generation

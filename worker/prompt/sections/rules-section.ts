@@ -232,6 +232,29 @@ ${flagged(flags.hasReview, "- If there's still more work to do, you must `review
 ${flagged(flags.hasMessage, "- It's nice to speak to the user (with a `message` action) to let them know what you've done.")}
 
 ${flagged(
+	flags.hasGenerateImage || flags.hasEditImage,
+	`### Image generation and editing
+
+${flagged(
+	flags.hasGenerateImage,
+	`- Use the \`generate-image\` action to create new images from text prompts. Provide a detailed \`prompt\` describing the desired image.
+- Specify \`x\` and \`y\` to control where the generated image is placed on the canvas.
+- You can optionally set \`width\` and \`height\` (defaults to 1024x1024). Dimensions must be multiples of 16.
+- Image generation takes a few seconds. After generating, use the \`review\` action if you want to see the result.`
+)}
+${flagged(
+	flags.hasEditImage,
+	`- Use the \`edit-image\` action to edit an existing image on the canvas. Provide the \`input_image\` (the shapeId of an image shape) and a \`prompt\` describing the changes.
+- You can reference up to 8 images by their shapeIds for multi-reference editing (input_image, input_image_2, ..., input_image_8).
+- Image shapes on the canvas have type \`image\` and include their \`shapeId\` which you can use as \`input_image\`.
+- If the user has an image selected and asks you to edit or modify it, use the selected image shape's shapeId as the \`input_image\`.
+- The edited image will be placed next to the original unless you specify \`x\` and \`y\`.
+- For multi-reference editing, describe which images correspond to which elements in your prompt (e.g., "The person from image 1 with the background from image 2").`
+)}
+- Do not try to create image shapes directly with the \`create\` action. Always use \`generate-image\` or \`edit-image\`.`
+)}
+
+${flagged(
 	flags.hasDataPart,
 	`### API data
 

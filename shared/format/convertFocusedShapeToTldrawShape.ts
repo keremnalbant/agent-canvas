@@ -29,6 +29,7 @@ import {
 	FocusedDrawShape,
 	FocusedGeoShape,
 	FocusedGeoShapePartial,
+	FocusedImageShape,
 	FocusedLineShape,
 	FocusedNoteShape,
 	FocusedShape,
@@ -90,6 +91,9 @@ export function convertFocusedShapeToTldrawShape(
 		}
 		case 'unknown': {
 			return convertUnknownShapeToTldrawShape(editor, focusedShape, { defaultShape })
+		}
+		case 'image': {
+			return convertImageShapeToTldrawShape(editor, focusedShape, { defaultShape })
 		}
 	}
 }
@@ -609,6 +613,41 @@ function convertDrawShapeToTldrawShape(
 			},
 			meta: {
 				note: focusedShape.note ?? defaultDrawShape.meta?.note ?? '',
+			},
+		},
+	}
+}
+
+function convertImageShapeToTldrawShape(
+	editor: Editor,
+	focusedShape: FocusedImageShape,
+	{ defaultShape }: { defaultShape: Partial<TLShape> }
+): { shape: TLShape } {
+	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
+
+	return {
+		shape: {
+			id: shapeId,
+			type: 'image',
+			typeName: 'shape',
+			x: focusedShape.x ?? defaultShape.x ?? 0,
+			y: focusedShape.y ?? defaultShape.y ?? 0,
+			rotation: defaultShape.rotation ?? 0,
+			index: defaultShape.index ?? editor.getHighestIndexForParent(editor.getCurrentPageId()),
+			parentId: defaultShape.parentId ?? editor.getCurrentPageId(),
+			isLocked: defaultShape.isLocked ?? false,
+			opacity: defaultShape.opacity ?? 1,
+			props: defaultShape.props ?? ({
+				w: focusedShape.w ?? 100,
+				h: focusedShape.h ?? 100,
+				assetId: null,
+				playing: true,
+				crop: null,
+				flipX: false,
+				flipY: false,
+			} as any),
+			meta: {
+				note: focusedShape.note ?? defaultShape.meta?.note ?? '',
 			},
 		},
 	}

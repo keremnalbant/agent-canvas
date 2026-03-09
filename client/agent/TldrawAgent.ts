@@ -683,7 +683,7 @@ export class TldrawAgent {
 		prompt: BaseAgentPrompt
 		signal: AbortSignal
 	}): AsyncGenerator<Streaming<AgentAction>> {
-		const res = await fetch('/stream', {
+		const res = await fetch('/api/stream', {
 			method: 'POST',
 			body: JSON.stringify(prompt),
 			headers: {

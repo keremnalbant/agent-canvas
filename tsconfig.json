@@ -1,35 +1,55 @@
 {
-	"compilerOptions": {
-		"outDir": "./.tsbuild",
-		"types": ["@cloudflare/workers-types", "node"],
-		"composite": true,
-		"declaration": true,
-		"declarationMap": true,
-		"emitDeclarationOnly": true,
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"importHelpers": true,
-		"resolveJsonModule": true,
-		"incremental": true,
-		"jsx": "react-jsx",
-		"lib": ["dom", "DOM.Iterable", "esnext"],
-		"module": "esnext",
-		"target": "esnext",
-		"moduleResolution": "node",
-		"noFallthroughCasesInSwitch": true,
-		"noImplicitAny": true,
-		"noImplicitReturns": true,
-		"noUnusedLocals": false,
-		"noUnusedParameters": false,
-		"skipLibCheck": true,
-		"strict": true,
-		"strictFunctionTypes": true,
-		"strictNullChecks": true,
-		"useDefineForClassFields": true,
-		"noImplicitOverride": true
-	},
-	"exclude": ["node_modules"],
-	"include": ["client", "shared", "worker"],
-	"files": ["./vite.config.ts"]
+  "compilerOptions": {
+    "outDir": "./.tsbuild",
+    "types": [
+      "node"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
+    "resolveJsonModule": true,
+    "incremental": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "dom",
+      "DOM.Iterable",
+      "esnext"
+    ],
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "useDefineForClassFields": true,
+    "noImplicitOverride": true,
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "allowJs": true,
+    "noEmit": true
+  },
+  "exclude": [
+    "node_modules"
+  ],
+  "include": [
+    "client",
+    "shared",
+    "server",
+    "app",
+    "next-env.d.ts",
+    "next.config.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ]
 }

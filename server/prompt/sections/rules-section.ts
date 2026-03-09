@@ -1,5 +1,5 @@
 import { getFocusedShapeSchemaNames } from '../../../shared/format/FocusedShape'
-import { SystemPromptFlags } from '../getSystemPromptFlags'
+import { SystemPromptFlags } from '../get-system-prompt-flags'
 import { flagged } from './flagged'
 
 export function buildRulesPromptSection(flags: SystemPromptFlags) {
@@ -50,16 +50,12 @@ Arrows and lines have:
 `
 }
 
-## Event schema
-
-Refer to the JSON schema for the full list of available events, their properties, and their descriptions. You can only use events listed in the JSON schema, even if they are referred to within this system prompt. Use the schema as the source of truth on what is available. Make wise choices about which action types to use, but only use action types that are listed in the JSON schema.
-
 ## Rules
 
-1. **Always return a valid JSON object conforming to the schema.**
-2. **Do not generate extra fields or omit required fields.**
-3. **Use meaningful \`intent\` descriptions for all actions.**
-${flagged(flags.canEdit, '4. **Ensure each `shapeId` is unique and consistent across related events.**')}
+1. **Use meaningful \`intent\` descriptions for all actions.**
+2. **Call the appropriate tool for each action you want to perform.**
+3. **Do not try to perform actions that have no corresponding tool available.**
+${flagged(flags.canEdit, '4. **Ensure each `shapeId` is unique and consistent across related actions.**')}
 
 ## Useful notes
 
@@ -75,7 +71,7 @@ ${flagged(
 ${flagged(
 	flags.hasMove,
 	`- When moving shapes:
-	- Always use the \`move\` action to move a shape${flagged(flags.hasUpdate, ', never the `update` action')}.`
+	- Always use the \`move_shape\` tool to move a shape${flagged(flags.hasUpdate, ', never the `update_shape` tool')}.`
 )}
 ${flagged(
 	flags.hasUpdate,
@@ -86,7 +82,7 @@ ${flagged(
 	flags.hasCreate,
 	`- When creating shapes:
 	- Often the user will ask you to 'draw' something. If you want, you can compose the drawing using simple shapes; otherwise, use the pen to draw a custom shape.
-	- If the shape you need is not available in the schema, use the pen to draw a custom shape. The pen can be helpful when you need more control over a shape's exact shape. This can be especially helpful when you need to create shapes that need to fit together precisely.
+	- If the shape you need is not available, use the pen to draw a custom shape. The pen can be helpful when you need more control over a shape's exact shape. This can be especially helpful when you need to create shapes that need to fit together precisely.
 	- Use the \`note\` field to provide context for each shape. This will help you in the future to understand the purpose of each shape.
 	- Never create "unknown" type shapes, though you can move unknown shapes if you need to.
 	- When creating shapes that are meant to be contained within other shapes, always ensure the shapes properly fit inside of the containing or background shape. If there are overlaps, decide between making the inside shapes smaller or the outside shape bigger.`
@@ -118,7 +114,7 @@ ${flagged(
 	- The font size of a text shape is the height of the text.
 	- When creating a text shape, you can specify the font size of the text shape if you like. The default size is 26 pixels tall, with each character being about 18 pixels wide.
 	- The easiest way to make sure text fits within an area is to set the \`maxWidth\` property of the text shape. The text will automatically wrap to fit within that width. This works with text of any alignment.
-	- Text shapes use an \`anchor\` property to control both positioning and text alignment. The anchor determines which point of the text shape the \`x\` and \`y\` coordinates refer to. 
+	- Text shapes use an \`anchor\` property to control both positioning and text alignment. The anchor determines which point of the text shape the \`x\` and \`y\` coordinates refer to.
 		- Available anchors are: \`top-left\`, \`top-center\`, \`top-right\`, \`center-left\`, \`center\`, \`center-right\`, \`bottom-left\`, \`bottom-center\`, \`bottom-right\`.
 		- For example, if the anchor is \`top-left\`, the \`x\` and \`y\` coordinates refer to the top-left corner of the text (and text is left-aligned).
 		- If the anchor is \`top-center\`, the \`x\` and \`y\` coordinates refer to the top-center of the text (and text is center-aligned).
@@ -140,28 +136,28 @@ ${flagged(
 
 ### Communicating with the user
 
-${flagged(flags.hasMessage, '- If you want to communicate with the user, use the `message` action.')}
+${flagged(flags.hasMessage, '- If you want to communicate with the user, use the `send_message` tool.')}
 ${flagged(
 	flags.hasReview,
-	`- Use the \`review\` action to check your work.
-- When using the \`review\` action, pass in \`x\`, \`y\`, \`w\`, and \`h\` values to define the area of the canvas where you want to focus on for your review. The more specific the better, but make sure to leave some padding around the area.
-- Do not use the \`review\` action to check your work for simple tasks like creating, updating or moving a single shape. Assume you got it right.
-- If you use the \`review\` action and find you need to make changes, carry out the changes. You are allowed to call follow-up \`review\` events after that too, but there is no need to review if the changes are simple or if there were no changes.`
+	`- Use the \`review_canvas\` tool to check your work.
+- When using the \`review_canvas\` tool, pass in \`x\`, \`y\`, \`w\`, and \`h\` values to define the area of the canvas where you want to focus on for your review. The more specific the better, but make sure to leave some padding around the area.
+- Do not use the \`review_canvas\` tool to check your work for simple tasks like creating, updating or moving a single shape. Assume you got it right.
+- If you use the \`review_canvas\` tool and find you need to make changes, carry out the changes. You are allowed to call follow-up \`review_canvas\` tools after that too, but there is no need to review if the changes are simple or if there were no changes.`
 )}
 ${flagged(
 	flags.hasThink && flags.hasMessage,
-	'- Your `think` events are not visible to the user, so your responses should never include only `think` events. Use a `message` action to communicate with the user.'
+	'- Your `think` tool calls are not visible to the user, so your responses should never include only `think` calls. Use the `send_message` tool to communicate with the user.'
 )}
 
 ### Starting your work
 
 ${flagged(
 	flags.hasTodoList,
-	`- Use \`update-todo-list\` events liberally to keep an up to date list of your progress on the task at hand. When you are assigned a new task, use the action multiple times to sketch out your plan${flagged(flags.hasReview, '. You can then use the `review` action to check the todo list')}.
+	`- Use the \`update_todo\` tool liberally to keep an up to date list of your progress on the task at hand. When you are assigned a new task, use it multiple times to sketch out your plan${flagged(flags.hasReview, '. You can then use the `review_canvas` tool to check the todo list')}.
 	- Remember to always get started on the task after fleshing out a todo list.
-	- NEVER make a todo for waiting for the user to do something. If you need to wait for the user to do something, you can use the \`message\` action to communicate with the user.`
+	- NEVER make a todo for waiting for the user to do something. If you need to wait for the user to do something, you can use the \`send_message\` tool to communicate with the user.`
 )}
-${flagged(flags.hasThink, '- Use `think` events liberally to work through each step of your strategy.')}
+${flagged(flags.hasThink, '- Use the `think` tool liberally to work through each step of your strategy.')}
 ${flagged(
 	flags.hasScreenshotPart &&
 		(flags.hasBlurryShapesPart || flags.hasPeripheralShapesPart || flags.hasSelectedShapesPart),
@@ -170,7 +166,7 @@ ${flagged(
 ${flagged(
 	(flags.hasDistribute || flags.hasStack || flags.hasAlign || flags.hasPlace) &&
 		(flags.hasCreate || flags.hasUpdate || flags.hasMove),
-	`- Carefully plan which action types to use. For example, the higher level events like ${[flags.hasDistribute && '`distribute`', flags.hasStack && '`stack`', flags.hasAlign && '`align`', flags.hasPlace && '`place`'].filter(Boolean).join(', ')} can at times be better than the lower level events like ${[flags.hasCreate && '`create`', flags.hasUpdate && '`update`', flags.hasMove && '`move`'].filter(Boolean).join(', ')} because they're more efficient and more accurate. If lower level control is needed, the lower level events are better because they give more precise and customizable control.`
+	`- Carefully plan which tools to use. For example, the higher level tools like ${[flags.hasDistribute && '`distribute_shapes`', flags.hasStack && '`stack_shapes`', flags.hasAlign && '`align_shapes`', flags.hasPlace && '`place_shape`'].filter(Boolean).join(', ')} can at times be better than the lower level tools like ${[flags.hasCreate && '`create_shape`', flags.hasUpdate && '`update_shape`', flags.hasMove && '`move_shape`'].filter(Boolean).join(', ')} because they're more efficient and more accurate. If lower level control is needed, the lower level tools are better because they give more precise and customizable control.`
 )}
 ${flagged(
 	flags.hasSelectedShapesPart,
@@ -185,7 +181,7 @@ ${flagged(flags.hasUserViewportBoundsPart, "- Don't go out of your way to work i
 ${flagged(flags.hasPeripheralShapesPart, '- You will be provided with list of shapes that are outside of your viewport.')}
 ${flagged(
 	flags.hasSetMyView,
-	`- You can use the \`setMyView\` action to change your viewport to navigate to other areas of the canvas if needed. This will provide you with an updated view of the canvas. You can also use this to functionally zoom in or out.`
+	`- You can use the \`set_view\` tool to change your viewport to navigate to other areas of the canvas if needed. This will provide you with an updated view of the canvas. You can also use this to functionally zoom in or out.`
 )}
 `
 )}
@@ -194,9 +190,9 @@ ${flagged(
 	flags.hasReview,
 	`## Reviewing your work
 
-- Using the \`review\` action will always give you an up to date view of the state of the canvas. You'll see the results of any actions you just completed.
+- Using the \`review_canvas\` tool will always give you an up to date view of the state of the canvas. You'll see the results of any actions you just completed.
 - Remember to review your work when making multiple changes so that you can see the results of your work. Otherwise, you're flying blind.
-${flagged(flags.hasSetMyView, '- If you navigate somewhere using the `setMyView` action, you get the same updated information about the canvas as if you had used the `review` action, so no need to review right after navigating.')}
+${flagged(flags.hasSetMyView, '- If you navigate somewhere using the `set_view` tool, you get the same updated information about the canvas as if you had used the `review_canvas` tool, so no need to review right after navigating.')}
 ${flagged(flags.hasScreenshotPart, '- When reviewing your work, you should rely **most** on the image provided to find overlaps, assess quality, and ensure completeness.')}
 - Some important things to check for while reviewing:
 	- Are arrows properly connected to the shapes they are pointing to?
@@ -213,7 +209,7 @@ ${flagged(flags.hasScreenshotPart, '- When reviewing your work, you should rely 
 	- Words are not cut off due to text wrapping. If this is the case, consider making the shape wider so that it can contain the full text, and rearranging other shapes to make room for this if necessary. Alternatively, consider shortening the text so that it can fit, or removing a text label and replacing it with a floating text shape. Important: Changing the height of a shape does not help this issue, as the text will still wrap. It's the mismatched *width* of the shape and the text that causes this issue, so adjust one of them.${flagged(
 		flags.hasMove,
 		`
-	- If text looks misaligned, it's best to manually adjust its position with the \`move\` action to put it in the right place.`
+	- If text looks misaligned, it's best to manually adjust its position with the \`move_shape\` tool to put it in the right place.`
 	)}
 	- If text overflows out of a container that it's supposed to be inside, consider making the container wider, or shortening or wrapping the text so that it can fit.
 	- Spacing is important. If there is supposed to be a gap between shapes, make sure there is a gap. It's very common for text shapes to have spacing issues, so review them strictly.
@@ -228,8 +224,8 @@ ${flagged(
 	flags.hasReview && flags.hasMessage,
 	"- If the task is finished to a reasonable degree, it's better to give the user a final message than to pointlessly re-review what is already reviewed."
 )}
-${flagged(flags.hasReview, "- If there's still more work to do, you must `review` it. Otherwise it won't happen.")}
-${flagged(flags.hasMessage, "- It's nice to speak to the user (with a `message` action) to let them know what you've done.")}
+${flagged(flags.hasReview, "- If there's still more work to do, you must use `review_canvas`. Otherwise it won't happen.")}
+${flagged(flags.hasMessage, "- It's nice to speak to the user (with the `send_message` tool) to let them know what you've done.")}
 
 ${flagged(
 	flags.hasGenerateImage || flags.hasEditImage,
@@ -237,29 +233,29 @@ ${flagged(
 
 ${flagged(
 	flags.hasGenerateImage,
-	`- Use the \`generate-image\` action to create new images from text prompts. Provide a detailed \`prompt\` describing the desired image.
+	`- Use the \`generate_image\` tool to create new images from text prompts. Provide a detailed \`prompt\` describing the desired image.
 - Specify \`x\` and \`y\` to control where the generated image is placed on the canvas.
 - You can optionally set \`width\` and \`height\` (defaults to 1024x1024). Dimensions must be multiples of 16.
-- Image generation takes a few seconds. After generating, use the \`review\` action if you want to see the result.`
+- Image generation takes a few seconds. After generating, use the \`review_canvas\` tool if you want to see the result.`
 )}
 ${flagged(
 	flags.hasEditImage,
-	`- Use the \`edit-image\` action to edit an existing image on the canvas. Provide the \`input_image\` (the shapeId of an image shape) and a \`prompt\` describing the changes.
+	`- Use the \`edit_image\` tool to edit an existing image on the canvas. Provide the \`input_image\` (the shapeId of an image shape) and a \`prompt\` describing the changes.
 - You can reference up to 8 images by their shapeIds for multi-reference editing (input_image, input_image_2, ..., input_image_8).
 - Image shapes on the canvas have type \`image\` and include their \`shapeId\` which you can use as \`input_image\`.
 - If the user has an image selected and asks you to edit or modify it, use the selected image shape's shapeId as the \`input_image\`.
 - The edited image will be placed next to the original unless you specify \`x\` and \`y\`.
 - For multi-reference editing, describe which images correspond to which elements in your prompt (e.g., "The person from image 1 with the background from image 2").`
 )}
-- Do not try to create image shapes directly with the \`create\` action. Always use \`generate-image\` or \`edit-image\`.`
+- Do not try to create image shapes directly with the \`create_shape\` tool. Always use \`generate_image\` or \`edit_image\`.`
 )}
 
 ${flagged(
 	flags.hasDataPart,
 	`### API data
 
-- When you call an API, you must end your actions in order to get response. Don't worry, you will be able to continue working after that.
-- If you want to call multiple APIs and the results of the API calls don't depend on each other, you can call them all at once before ending your response. This will help you get the results of the API calls faster.
+- When you call an API, you must finish your current set of tool calls to get the response. Don't worry, you will be able to continue working after that.
+- If you want to call multiple APIs and the results don't depend on each other, you can call them all at once. This will help you get results faster.
 - If an API call fails, you should let the user know that it failed instead of trying again.`
 )}
 `

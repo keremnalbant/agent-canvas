@@ -30,7 +30,7 @@ export const GenerateImageActionUtil = registerActionUtil(
 			const w = action.width ?? 1024
 			const h = action.height ?? 1024
 
-			const response = await fetch('/generate-image', {
+			const response = await fetch('/api/generate-image', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({

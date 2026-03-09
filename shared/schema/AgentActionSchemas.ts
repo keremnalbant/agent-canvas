@@ -47,11 +47,12 @@ export const EditImageAction = z
     width: z.number().optional(),
     height: z.number().optional(),
     seed: z.number().optional(),
+    transparent: z.boolean().optional(),
   })
   .meta({
     title: "Edit Image",
     description:
-      "Edit an existing image on the canvas using AI. Provide the shapeId of the image to edit as input_image and a prompt describing the desired changes. You can reference up to 8 images by their shapeIds.",
+      "Edit an existing image on the canvas using AI. Provide the shapeId of the image to edit as input_image and a prompt describing the desired changes. You can reference up to 8 images by their shapeIds. Set transparent=true when editing images that have transparent backgrounds to preserve transparency.",
     _systemPromptCategory: "edit",
   });
 
@@ -464,6 +465,61 @@ export const CompileSceneAction = z
   });
 
 export type CompileSceneAction = z.infer<typeof CompileSceneAction>;
+
+// Wait Action (pause before retrying rate-limited operations)
+export const WaitAction = z
+  .object({
+    _type: z.literal("wait"),
+    seconds: z.number(),
+  })
+  .meta({
+    title: "Wait",
+    description:
+      "Wait for a specified number of seconds before continuing. Use this to back off when hitting API rate limits before retrying.",
+  });
+
+export type WaitAction = z.infer<typeof WaitAction>;
+
+// Enter Plan Mode Action (agent enters visual planning mode)
+export const EnterPlanModeAction = z
+  .object({
+    _type: z.literal("enter-plan-mode"),
+    intent: z.string(),
+  })
+  .meta({
+    title: "Enter Plan Mode",
+    description:
+      "Enter plan mode to decompose a scene into layered elements with transparent backgrounds.",
+  });
+
+export type EnterPlanModeAction = z.infer<typeof EnterPlanModeAction>;
+
+// Exit Plan Mode Action (agent exits visual planning mode)
+export const ExitPlanModeAction = z
+  .object({
+    _type: z.literal("exit-plan-mode"),
+  })
+  .meta({
+    title: "Exit Plan Mode",
+    description:
+      "Exit plan mode and return to normal working mode.",
+  });
+
+export type ExitPlanModeAction = z.infer<typeof ExitPlanModeAction>;
+
+// Plan Complete Action (agent signals all planned elements are generated)
+export const PlanCompleteAction = z
+  .object({
+    _type: z.literal("plan-complete"),
+    summary: z.string(),
+  })
+  .meta({
+    title: "Plan Complete",
+    description:
+      "Signal that all planned scene elements have been generated and the user can arrange them before compiling.",
+  });
+
+export type PlanCompleteAction = z.infer<typeof PlanCompleteAction>;
 
 // Unknown Action (catch-all for unrecognized actions)
 export const UnknownAction = z

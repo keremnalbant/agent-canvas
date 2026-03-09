@@ -15,12 +15,25 @@ export class AgentModeManager extends BaseAgentManager {
 	private $mode: Atom<AgentModeType>
 
 	/**
+	 * An atom tracking whether the agent has signaled plan completion.
+	 */
+	private $planComplete: Atom<boolean>
+
+	/**
+	 * Whether the user wants to enter planning mode on the next prompt.
+	 * Used when user toggles plan mode while the agent is idling.
+	 */
+	private $pendingPlanMode: Atom<boolean>
+
+	/**
 	 * Creates a new mode manager for the given agent.
 	 * Initializes the mode to 'idling'.
 	 */
 	constructor(agent: TldrawAgent) {
 		super(agent)
 		this.$mode = atom('mode', 'idling')
+		this.$planComplete = atom('planComplete', false)
+		this.$pendingPlanMode = atom('pendingPlanMode', false)
 	}
 
 	/**
@@ -29,6 +42,36 @@ export class AgentModeManager extends BaseAgentManager {
 	 */
 	reset(): void {
 		this.$mode.set('idling')
+		this.$planComplete.set(false)
+		this.$pendingPlanMode.set(false)
+	}
+
+	/**
+	 * Set pending plan mode flag (for toggling while idle).
+	 */
+	setPendingPlanMode(value: boolean) {
+		this.$pendingPlanMode.set(value)
+	}
+
+	/**
+	 * Get pending plan mode flag.
+	 */
+	getPendingPlanMode(): boolean {
+		return this.$pendingPlanMode.get()
+	}
+
+	/**
+	 * Get whether the plan is complete.
+	 */
+	getPlanComplete(): boolean {
+		return this.$planComplete.get()
+	}
+
+	/**
+	 * Set whether the plan is complete.
+	 */
+	setPlanComplete(value: boolean) {
+		this.$planComplete.set(value)
 	}
 
 	/**

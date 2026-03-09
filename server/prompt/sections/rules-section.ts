@@ -236,7 +236,9 @@ ${flagged(
 	`- Use the \`generate_image\` tool to create new images from text prompts. Provide a detailed \`prompt\` describing the desired image.
 - Specify \`x\` and \`y\` to control where the generated image is placed on the canvas.
 - You can optionally set \`width\` and \`height\` (defaults to 1024x1024). Dimensions must be multiples of 16.
-- Image generation takes a few seconds. After generating, use the \`review_canvas\` tool if you want to see the result.`
+- Image generation takes a few seconds. After generating, use the \`review_canvas\` tool if you want to see the result.
+- **Parallel generation:** When you need to generate multiple images (e.g., variations, plan mode subjects, or the user asks for several images), call multiple \`generate_image\` tools in the SAME response. They will execute concurrently, which is much faster than generating one at a time. For example, in plan mode, generate the background and all subjects in a single batch of tool calls.
+${flagged(flags.hasWait, '- **Rate limit handling:** If an image generation fails with a rate limit error (429), use the `wait` tool to pause for 10-15 seconds before retrying. Do not retry immediately without waiting — the API needs time to recover.')}`
 )}
 ${flagged(
 	flags.hasEditImage,
@@ -245,14 +247,19 @@ ${flagged(
 - Image shapes on the canvas have type \`image\` and include their \`shapeId\` which you can use as \`input_image\`.
 - If the user has an image selected and asks you to edit or modify it, use the selected image shape's shapeId as the \`input_image\`.
 - The edited image will be placed next to the original unless you specify \`x\` and \`y\`.
-- For multi-reference editing, describe which images correspond to which elements in your prompt (e.g., "The person from image 1 with the background from image 2").`
+- For multi-reference editing, describe which images correspond to which elements in your prompt (e.g., "The person from image 1 with the background from image 2").
+- When editing an image that has a transparent background, set \`transparent=true\` to preserve the transparency in the result.`
 )}
 - Do not try to create image shapes directly with the \`create_shape\` tool. Always use \`generate_image\` or \`edit_image\`.
+${flagged(
+	flags.hasEnterPlanMode,
+	`- When the user asks to create a complex scene with multiple individually positionable subjects, use \`enter_plan_mode\` to switch to planning mode. In normal mode, generate images directly without scene decomposition or transparent backgrounds (unless explicitly requested).`
+)}
 ${flagged(
 	flags.hasCompileScene,
 	`### Plan Mode (Visual Planning)
 
-When the user enables **plan mode** or asks you to plan a scene, you must:
+You are currently in **plan mode**. Your goal is to decompose scenes into layered elements.
 
 1. **Think like a scene director.** The user's prompt describes the hero subject and setting, but a great scene needs supporting elements that make it feel alive and believable. Use the \`think\` tool to plan a rich decomposition before generating anything.
 2. **Decompose into background + subjects.** Identify:
@@ -266,7 +273,8 @@ When the user enables **plan mode** or asks you to plan a scene, you must:
 3. **Generate the background** using \`generate_image\` (without transparent=true). The background should be the full environment without any subjects.
 4. **Generate each subject** separately using \`generate_image\` with \`transparent=true\`. Each subject should be described in isolation on a transparent background.
 5. **Place all elements** on the canvas with a thoughtful initial arrangement. Place the background first, then layer subjects on top where they would naturally appear. Consider depth — distant objects smaller and higher, foreground objects larger and lower.
-6. **Send a message** explaining the decomposition and that the user can now rearrange, resize, and reposition subjects before compiling.
+6. **Signal completion** using \`plan_complete\` with a summary of all generated elements. This enables the compile button for the user.
+7. **Send a message** explaining the decomposition and that the user can now rearrange, resize, and reposition subjects before compiling.
 
 After the user has arranged the subjects to their liking and asks to compile:
 - Use the \`compile_scene\` tool. The canvas will be automatically captured and used as a spatial reference.
@@ -284,7 +292,8 @@ Tips for plan mode:
 - The background prompt should describe the rich environment without subjects (e.g., "tropical beach at sunset, warm golden light, gentle waves, wet sand reflections, distant horizon" not "beach")
 - Vary subject sizes — a beach ball should be smaller than the hero cat, an umbrella should be taller
 - Supporting elements add depth and realism. Think about what objects, people, animals, or details would naturally exist in the described setting
-- Use different dimensions for different subjects — tall objects (umbrella, tree) might be 512x1024, wide objects (bench, surfboard) might be 1024x512`
+- Use different dimensions for different subjects — tall objects (umbrella, tree) might be 512x1024, wide objects (bench, surfboard) might be 1024x512
+${flagged(flags.hasExitPlanMode, `- If the user wants to leave planning mode, use \`exit_plan_mode\` to return to normal working mode.`)}`
 )}`
 )}
 

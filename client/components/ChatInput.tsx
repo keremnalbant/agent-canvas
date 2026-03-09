@@ -115,6 +115,7 @@ export function ChatInput({
 							type="button"
 							className={'chat-plan-mode-toggle' + (isPlanMode ? ' active' : '')}
 							onClick={onPlanModeToggle}
+							disabled={isGenerating}
 							title={isPlanMode ? 'Plan mode ON - scenes will be decomposed into subjects' : 'Plan mode OFF'}
 						>
 							<PlanModeIcon /> Plan

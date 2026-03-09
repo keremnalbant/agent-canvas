@@ -63,16 +63,19 @@ interface BFLSubmitResponse {
 }
 
 interface BFLPollResponse {
-  status: "Ready" | "Failed" | "Error" | "Pending" | "Processing";
+  status: "Ready" | "Failed" | "Error" | "Pending" | "Processing" | "Request Moderated";
   result?: {
     sample: string;
   };
   error?: string;
+  details?: {
+    "Moderation Reasons"?: string[];
+  };
 }
 
 interface BFLLabsPollResponse {
   id: string;
-  status: "Ready" | "Failed" | "Error" | "Pending" | "Processing";
+  status: "Ready" | "Failed" | "Error" | "Pending" | "Processing" | "Request Moderated";
   result?: {
     start_time: number;
     prompt: string;
@@ -80,6 +83,9 @@ interface BFLLabsPollResponse {
     sample: string;
   };
   error?: string;
+  details?: {
+    "Moderation Reasons"?: string[];
+  };
 }
 
 export interface BFLGenerateRequest {
@@ -258,6 +264,16 @@ export async function generateImageWithBfl(
       return { success: true, imageUrl: imageDataUrl, width: w, height: h };
     }
 
+    if (pollResult.status === "Request Moderated") {
+      const reasons = pollResult.details?.["Moderation Reasons"]?.join(", ") ?? "unknown";
+      return {
+        success: false,
+        error: `Image was moderated by content filter (${reasons}). Do not retry — rephrase the prompt or use a different subject.`,
+        width: w,
+        height: h,
+      };
+    }
+
     if (pollResult.status === "Failed" || pollResult.status === "Error") {
       return {
         success: false,
@@ -278,6 +294,14 @@ export async function generateImageWithBfl(
 
 export interface BFLTransparentRequest {
   prompt: string;
+  input_image?: string;
+  input_image_2?: string;
+  input_image_3?: string;
+  input_image_4?: string;
+  input_image_5?: string;
+  input_image_6?: string;
+  input_image_7?: string;
+  input_image_8?: string;
   width?: number;
   height?: number;
   seed?: number;
@@ -319,6 +343,29 @@ export async function generateTransparentImageWithBfl(
   if (body.seed !== undefined) {
     requestBody.seed = body.seed;
   }
+
+  if (body.input_image) {
+    requestBody.input_image = body.input_image.startsWith("data:")
+      ? stripDataUrlPrefix(body.input_image)
+      : body.input_image;
+  }
+
+  const additionalImages = [
+    body.input_image_2,
+    body.input_image_3,
+    body.input_image_4,
+    body.input_image_5,
+    body.input_image_6,
+    body.input_image_7,
+    body.input_image_8,
+  ];
+
+  additionalImages.forEach((img, index) => {
+    if (img) {
+      const key = `input_image_${index + 2}`;
+      requestBody[key] = img.startsWith("data:") ? stripDataUrlPrefix(img) : img;
+    }
+  });
 
   try {
     console.log("[BFL-transparent] Submitting to:", BFL_LABS_API_URL);
@@ -413,6 +460,17 @@ export async function generateTransparentImageWithBfl(
       if (pollResult.status === "Pending" || pollResult.status === "Processing") {
         // Still working, keep polling
         continue;
+      }
+
+      if (pollResult.status === "Request Moderated") {
+        const reasons = pollResult.details?.["Moderation Reasons"]?.join(", ") ?? "unknown";
+        console.error("[BFL-transparent] Request moderated:", reasons);
+        return {
+          success: false,
+          error: `Image was moderated by content filter (${reasons}). Do not retry — rephrase the prompt or use a different subject.`,
+          width: w,
+          height: h,
+        };
       }
 
       // For Error/Failed status: if this is the first poll attempt,

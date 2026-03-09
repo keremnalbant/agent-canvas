@@ -586,7 +586,7 @@ export class TldrawAgent {
 			)
 		}
 
-		const availableActions = modeDefinition.actions
+		const availableActions: readonly string[] = modeDefinition.actions
 
 		const requestPromise = (async () => {
 			const prompt = await this.preparePrompt(request, helpers)

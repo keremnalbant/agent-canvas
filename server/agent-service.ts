@@ -8,6 +8,7 @@ import {
   buildAnthropicTools,
   executeCanvasTool,
   getActionTypeForTool,
+  getToolPhase,
 } from "./tools/canvas-tools";
 
 const MAX_TURNS = 300;
@@ -42,6 +43,11 @@ export async function streamAgentActions(
 
   // Accumulate conversation history across turns
   const messages: Anthropic.MessageParam[] = [...initialMessages];
+
+  // Track consecutive turns where ALL tool calls failed, to break infinite retry loops.
+  // This is a safety net — normally the agent should use the `wait` tool to back off.
+  let consecutiveAllFailTurns = 0;
+  const MAX_CONSECUTIVE_FAIL_TURNS = 5;
 
   try {
     for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -90,20 +96,29 @@ export async function streamAgentActions(
 
       if (!isToolTurn) break;
 
-      // Execute tools in parallel and collect results
+      // Split tool_use blocks into action tools and observation tools.
+      // Action tools (image gen, shape ops, etc.) run first in parallel.
+      // Observation tools (review, set_view) run after so they see updated canvas.
       const toolUseBlocks = response.content.filter(
         (block): block is Anthropic.ContentBlock & { type: "tool_use" } =>
           block.type === "tool_use",
       );
 
-      const toolResults = await Promise.all(
-        toolUseBlocks.map(async (toolUse) => {
+      const actionBlocks = toolUseBlocks.filter(
+        (b) => getToolPhase(b.name) === "action",
+      );
+      const observationBlocks = toolUseBlocks.filter(
+        (b) => getToolPhase(b.name) === "observation",
+      );
+
+      // Phase 1: Execute action tools in parallel
+      const actionResults = await Promise.all(
+        actionBlocks.map(async (toolUse) => {
           const result = await executeCanvasTool(
             toolUse.name,
             toolUse.input as Record<string, unknown>,
             channel,
           );
-
           return {
             type: "tool_result" as const,
             tool_use_id: toolUse.id,
@@ -112,6 +127,60 @@ export async function streamAgentActions(
           };
         }),
       );
+
+      // Phase 2: Execute observation tools sequentially (in model output order)
+      // so each sees the canvas state after all actions + prior observations.
+      // Check signal between each so the user can interrupt (e.g. to compile).
+      const observationResults: typeof actionResults = [];
+      for (const toolUse of observationBlocks) {
+        if (signal?.aborted) {
+          // If interrupted, still provide a result so the message is well-formed
+          observationResults.push({
+            type: "tool_result" as const,
+            tool_use_id: toolUse.id,
+            content: "Observation skipped: request was interrupted.",
+            is_error: false,
+          });
+          continue;
+        }
+
+        const result = await executeCanvasTool(
+          toolUse.name,
+          toolUse.input as Record<string, unknown>,
+          channel,
+        );
+        observationResults.push({
+          type: "tool_result" as const,
+          tool_use_id: toolUse.id,
+          content: result.text,
+          is_error: result.isError,
+        });
+      }
+
+      // Combine results in original model output order
+      const toolResultMap = new Map(
+        [...actionResults, ...observationResults].map((r) => [
+          r.tool_use_id,
+          r,
+        ]),
+      );
+      const toolResults = toolUseBlocks.map(
+        (b) => toolResultMap.get(b.id)!,
+      );
+
+      // Track consecutive all-fail turns to prevent infinite retry loops
+      const allFailed = toolResults.every((r) => r.is_error);
+      consecutiveAllFailTurns = allFailed ? consecutiveAllFailTurns + 1 : 0;
+
+      if (consecutiveAllFailTurns >= MAX_CONSECUTIVE_FAIL_TURNS) {
+        channel.push({
+          _type: "message",
+          text: "Image generation is temporarily unavailable due to rate limiting. Please try again later.",
+          complete: true,
+          time: 0,
+        } as any);
+        break;
+      }
 
       // Append tool results as a user message
       messages.push({ role: "user", content: toolResults });

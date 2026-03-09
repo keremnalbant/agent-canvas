@@ -8,6 +8,10 @@ import { BringToFrontActionUtil } from '../actions/BringToFrontActionUtil'
 import { ClearActionUtil } from '../actions/ClearActionUtil'
 import { CountryInfoActionUtil } from '../actions/CountryInfoActionUtil'
 import { CompileSceneActionUtil } from '../actions/CompileSceneActionUtil'
+import { EnterPlanModeActionUtil } from '../actions/EnterPlanModeActionUtil'
+import { ExitPlanModeActionUtil } from '../actions/ExitPlanModeActionUtil'
+import { PlanCompleteActionUtil } from '../actions/PlanCompleteActionUtil'
+import { WaitActionUtil } from '../actions/WaitActionUtil'
 import { EditImageActionUtil } from '../actions/EditImageActionUtil'
 import { GenerateImageActionUtil } from '../actions/GenerateImageActionUtil'
 import { CountShapesActionUtil } from '../actions/CountShapesActionUtil'
@@ -75,6 +79,79 @@ export type AgentModeDefinition = {
 )
 
 /**
+ * Shared prompt parts for all active modes.
+ */
+const ACTIVE_MODE_PARTS = [
+	ModePartUtil.type,
+	DebugPartUtil.type,
+	ModelNamePartUtil.type,
+	MessagesPartUtil.type,
+	DataPartUtil.type,
+	ContextItemsPartUtil.type,
+	ScreenshotPartUtil.type,
+	UserViewportBoundsPartUtil.type,
+	AgentViewportBoundsPartUtil.type,
+	BlurryShapesPartUtil.type,
+	PeripheralShapesPartUtil.type,
+	SelectedShapesPartUtil.type,
+	ChatHistoryPartUtil.type,
+	UserActionHistoryPartUtil.type,
+	TodoListPartUtil.type,
+	CanvasLintsPartUtil.type,
+	TimePartUtil.type,
+] as const
+
+/**
+ * Shared actions available in all active modes.
+ */
+const COMMON_ACTIONS = [
+	// Communication
+	MessageActionUtil.type,
+
+	// Planning
+	ThinkActionUtil.type,
+	ReviewActionUtil.type,
+	AddDetailActionUtil.type,
+	UpsertTodoListItemActionUtil.type,
+	SetMyViewActionUtil.type,
+
+	// Individual shapes
+	CreateActionUtil.type,
+	DeleteActionUtil.type,
+	UpdateActionUtil.type,
+	LabelActionUtil.type,
+	MoveActionUtil.type,
+
+	// Groups of shapes
+	PlaceActionUtil.type,
+	BringToFrontActionUtil.type,
+	SendToBackActionUtil.type,
+	RotateActionUtil.type,
+	ResizeActionUtil.type,
+	AlignActionUtil.type,
+	DistributeActionUtil.type,
+	StackActionUtil.type,
+	ClearActionUtil.type,
+
+	// Drawing
+	PenActionUtil.type,
+
+	// External APIs
+	CountryInfoActionUtil.type,
+	CountShapesActionUtil.type,
+
+	// Image generation
+	GenerateImageActionUtil.type,
+	EditImageActionUtil.type,
+
+	// Utilities
+	WaitActionUtil.type,
+
+	// Internal (required)
+	UnknownActionUtil.type,
+] as const
+
+/**
  * All agent mode definitions.
  *
  * To add a new mode, add a new object to this array.
@@ -91,93 +168,23 @@ export const AGENT_MODE_DEFINITIONS = [
 	{
 		type: 'working',
 		active: true,
-
-		/**
-		 * Prompt parts determine what information will be sent to the model.
-		 */
-		parts: [
-			// Mode (sends metadata to worker)
-			ModePartUtil.type,
-
-			// Debug (sends debug flags to worker)
-			DebugPartUtil.type,
-
-			// Model
-			ModelNamePartUtil.type,
-
-			// Request
-			MessagesPartUtil.type,
-			DataPartUtil.type,
-			ContextItemsPartUtil.type,
-
-			// Viewport
-			ScreenshotPartUtil.type,
-			UserViewportBoundsPartUtil.type,
-			AgentViewportBoundsPartUtil.type,
-
-			// Shapes
-			BlurryShapesPartUtil.type,
-			PeripheralShapesPartUtil.type,
-			SelectedShapesPartUtil.type,
-
-			// History
-			ChatHistoryPartUtil.type,
-			UserActionHistoryPartUtil.type,
-			TodoListPartUtil.type,
-
-			// Lints
-			CanvasLintsPartUtil.type,
-
-			// Metadata
-			TimePartUtil.type,
-		],
-
-		/**
-		 * Agent actions determine what actions the agent can take.
-		 */
+		parts: [...ACTIVE_MODE_PARTS],
 		actions: [
-			// Communication
-			MessageActionUtil.type,
-
-			// Planning
-			ThinkActionUtil.type,
-			ReviewActionUtil.type,
-			AddDetailActionUtil.type,
-			UpsertTodoListItemActionUtil.type,
-			SetMyViewActionUtil.type,
-
-			// Individual shapes
-			CreateActionUtil.type,
-			DeleteActionUtil.type,
-			UpdateActionUtil.type,
-			LabelActionUtil.type,
-			MoveActionUtil.type,
-
-			// Groups of shapes
-			PlaceActionUtil.type,
-			BringToFrontActionUtil.type,
-			SendToBackActionUtil.type,
-			RotateActionUtil.type,
-			ResizeActionUtil.type,
-			AlignActionUtil.type,
-			DistributeActionUtil.type,
-			StackActionUtil.type,
-			ClearActionUtil.type,
-
-			// Drawing
-			PenActionUtil.type,
-
-			// External APIs
-			CountryInfoActionUtil.type,
-			CountShapesActionUtil.type,
-
-			// Image generation
-			GenerateImageActionUtil.type,
-			EditImageActionUtil.type,
+			...COMMON_ACTIONS,
+			// Working mode can enter plan mode
+			EnterPlanModeActionUtil.type,
+		],
+	},
+	{
+		type: 'planning',
+		active: true,
+		parts: [...ACTIVE_MODE_PARTS],
+		actions: [
+			...COMMON_ACTIONS,
+			// Planning mode has scene compilation and lifecycle tools
 			CompileSceneActionUtil.type,
-
-			// Internal (required)
-			UnknownActionUtil.type,
+			ExitPlanModeActionUtil.type,
+			PlanCompleteActionUtil.type,
 		],
 	},
 ] as const satisfies AgentModeDefinition[]

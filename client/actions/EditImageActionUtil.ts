@@ -87,6 +87,7 @@ export const EditImageActionUtil = registerActionUtil(
 				width: action.width,
 				height: action.height,
 				seed: action.seed,
+				transparent: action.transparent,
 			}
 
 			// Resolve additional reference images

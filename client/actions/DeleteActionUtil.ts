@@ -10,9 +10,12 @@ export const DeleteActionUtil = registerActionUtil(
 		static override type = 'delete' as const
 
 		override getInfo(action: Streaming<DeleteAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shapeId) lines.push(`**Shape:** ${action.shapeId}`)
 			return {
 				icon: 'trash' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Deleting shape...',
 				canGroup: (other: Streaming<BaseAgentAction>) => other._type === 'delete',
 			}
 		}

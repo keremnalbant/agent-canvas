@@ -9,9 +9,14 @@ export const StackActionUtil = registerActionUtil(
 		static override type = 'stack' as const
 
 		override getInfo(action: Streaming<StackAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.direction) lines.push(`**Direction:** ${action.direction}`)
+			if (action.gap !== undefined) lines.push(`**Gap:** ${action.gap}`)
+			if (action.shapeIds?.length) lines.push(`**Shapes:** ${action.shapeIds.join(', ')}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Stacking shapes...',
 			}
 		}
 

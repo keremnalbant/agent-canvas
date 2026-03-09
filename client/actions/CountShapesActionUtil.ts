@@ -8,10 +8,12 @@ export const CountShapesActionUtil = registerActionUtil(
 		static override type = 'count' as const
 
 		override getInfo(action: Streaming<CountShapesAction>) {
-			const description = action.complete ? 'Counted shapes' : 'Counting shapes'
+			const lines: string[] = []
+			lines.push(action.complete ? 'Counted shapes' : 'Counting shapes...')
+			if (action.expression) lines.push(`**Expression:** ${action.expression}`)
 			return {
 				icon: 'search' as const,
-				description,
+				description: lines.join('\n\n'),
 			}
 		}
 

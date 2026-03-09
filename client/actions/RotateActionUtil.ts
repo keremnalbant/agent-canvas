@@ -9,9 +9,16 @@ export const RotateActionUtil = registerActionUtil(
 		static override type = 'rotate' as const
 
 		override getInfo(action: Streaming<RotateAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.degrees !== undefined) lines.push(`**Degrees:** ${action.degrees}`)
+			if (action.originX !== undefined && action.originY !== undefined) {
+				lines.push(`**Origin:** (${action.originX}, ${action.originY})`)
+			}
+			if (action.shapeIds?.length) lines.push(`**Shapes:** ${action.shapeIds.join(', ')}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Rotating shapes...',
 			}
 		}
 

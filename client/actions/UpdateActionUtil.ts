@@ -14,9 +14,20 @@ export const UpdateActionUtil = registerActionUtil(
 		static override type = 'update' as const
 
 		override getInfo(action: Streaming<UpdateAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.update) {
+				lines.push(`**Shape:** ${action.update.shapeId} (${action.update._type})`)
+				const { _type, shapeId, ...rest } = action.update
+				const changed = Object.entries(rest).filter(([, v]) => v !== undefined)
+				if (changed.length > 0) {
+					const props = changed.map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ')
+					lines.push(`**Changes:** ${props}`)
+				}
+			}
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Updating shape...',
 			}
 		}
 

@@ -291,7 +291,12 @@ function buildHistoryItemMessage(item: ChatHistoryItem, priority: number): Agent
 				}
 				default: {
 					const { complete: _complete, time: _time, ...rawAction } = action || {}
-					text = '[ACTION]: ' + JSON.stringify(rawAction)
+					const sanitized = Object.fromEntries(
+						Object.entries(rawAction).filter(
+							([key]) => key !== 'imageUrl' && key !== 'screenshotDataUrl'
+						)
+					)
+					text = '[ACTION]: ' + JSON.stringify(sanitized)
 					break
 				}
 			}

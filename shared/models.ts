@@ -13,6 +13,11 @@ export const AGENT_MODEL_DEFINITIONS = {
     id: "claude-opus-4-6",
     provider: "anthropic",
   },
+  "claude-sonnet-4-6": {
+    name: "claude-sonnet-4-6",
+    id: "claude-sonnet-4-6",
+    provider: "anthropic",
+  },
 } as const;
 
 export const DEFAULT_MODEL_NAME: AgentModelName = "claude-opus-4-6";

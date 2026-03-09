@@ -9,9 +9,18 @@ export const ResizeActionUtil = registerActionUtil(
 		static override type = 'resize' as const
 
 		override getInfo(action: Streaming<ResizeAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.scaleX !== undefined && action.scaleY !== undefined) {
+				lines.push(`**Scale:** (${action.scaleX}, ${action.scaleY})`)
+			}
+			if (action.originX !== undefined && action.originY !== undefined) {
+				lines.push(`**Origin:** (${action.originX}, ${action.originY})`)
+			}
+			if (action.shapeIds?.length) lines.push(`**Shapes:** ${action.shapeIds.join(', ')}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Resizing shapes...',
 			}
 		}
 

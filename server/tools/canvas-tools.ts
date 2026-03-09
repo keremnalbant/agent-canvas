@@ -1,10 +1,11 @@
-import { tool, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
+import Anthropic from '@anthropic-ai/sdk'
 import z from 'zod'
 import { AgentAction, getActionSchema } from '../../shared/types/AgentAction'
+import { generateImageWithBfl, generateTransparentImageWithBfl } from '../bfl-client'
 import { ActionChannel } from './action-channel'
 
 /**
- * Maps action _type values to MCP tool names and descriptions.
+ * Maps action _type values to tool names and descriptions.
  * The tool input schema is derived from the action schema by removing the _type field.
  */
 const ACTION_TOOL_MAP: Record<
@@ -122,6 +123,11 @@ const ACTION_TOOL_MAP: Record<
 		toolName: 'update_todo',
 		description: 'Create or update a todo list item to track progress.',
 	},
+	'compile-scene': {
+		toolName: 'compile_scene',
+		description:
+			'Compile arranged transparent-background subjects and background into a final coherent image. Used after plan mode to merge the arranged scene into one image. Provide the original scene prompt and placement coordinates.',
+	},
 }
 
 /**
@@ -139,77 +145,182 @@ export function getActionTypeForTool(toolName: string): string | undefined {
 }
 
 /**
- * Get the list of all tool names for a given set of action types.
+ * Build Anthropic Tool definitions from action schemas.
+ * Converts Zod schemas to JSON Schema for the tool input_schema.
  */
-export function getToolNamesForActions(actionTypes: AgentAction['_type'][]): string[] {
-	return actionTypes
-		.map((type) => ACTION_TOOL_MAP[type]?.toolName)
-		.filter((name): name is string => name !== undefined)
-		.map((name) => `mcp__canvas__${name}`)
-}
+export function buildAnthropicTools(actionTypes: AgentAction['_type'][]): Anthropic.Tool[] {
+	const tools: Anthropic.Tool[] = []
 
-/**
- * Extract the input schema shape from an action schema, removing the _type field.
- */
-function extractToolInputShape(actionType: string): z.ZodRawShape | null {
-	const schema = getActionSchema(actionType)
-	if (!schema || !(schema instanceof z.ZodObject)) return null
+	for (const actionType of actionTypes) {
+		const mapping = ACTION_TOOL_MAP[actionType]
+		if (!mapping) continue
 
-	const rawShape = (schema as z.ZodObject<z.ZodRawShape>).shape
-	const inputShape = Object.fromEntries(
-		Object.entries(rawShape).filter(([key]) => key !== '_type')
-	) as z.ZodRawShape
+		const schema = getActionSchema(actionType)
+		if (!schema || !(schema instanceof z.ZodObject)) continue
 
-	return inputShape
-}
+		// Strip the _type field from the schema
+		const rawShape = (schema as z.ZodObject<z.ZodRawShape>).shape
+		const inputShape = Object.fromEntries(
+			Object.entries(rawShape).filter(([key]) => key !== '_type')
+		) as z.ZodRawShape
+		const inputSchema = z.object(inputShape)
 
-/**
- * Create the MCP server with canvas tools for a given set of action types.
- */
-export function createCanvasToolServer(
-	actionTypes: AgentAction['_type'][],
-	channel: ActionChannel
-) {
-	const tools = actionTypes
-		.map((actionType) => {
-			const mapping = ACTION_TOOL_MAP[actionType]
-			if (!mapping) return null
+		// Convert Zod schema to JSON Schema
+		const jsonSchema = z.toJSONSchema(inputSchema)
 
-			const inputShape = extractToolInputShape(actionType)
-			if (!inputShape) return null
-
-			return tool(
-				mapping.toolName,
-				mapping.description,
-				inputShape,
-				async (args: Record<string, unknown>) => {
-					const action = {
-						_type: actionType,
-						...args,
-					}
-
-					channel.push({
-						...(action as any),
-						complete: true,
-						time: 0,
-					})
-
-					return {
-						content: [
-							{
-								type: 'text' as const,
-								text: `Action "${actionType}" executed successfully.`,
-							},
-						],
-					}
-				}
-			)
+		tools.push({
+			name: mapping.toolName,
+			description: mapping.description,
+			input_schema: jsonSchema as Anthropic.Tool['input_schema'],
 		})
-		.filter((t): t is NonNullable<typeof t> => t !== null)
+	}
 
-	return createSdkMcpServer({
-		name: 'canvas',
-		version: '1.0.0',
-		tools,
+	return tools
+}
+
+/**
+ * Result of a tool execution, returned to the model as tool_result content.
+ */
+interface ToolExecutionResult {
+	text: string
+	isError?: boolean
+}
+
+/**
+ * Execute a canvas tool by name and push the action to the channel.
+ *
+ * Returns a text result that gets sent back to the model as tool_result.
+ */
+export async function executeCanvasTool(
+	toolName: string,
+	input: Record<string, unknown>,
+	channel: ActionChannel,
+): Promise<ToolExecutionResult> {
+	const actionType = TOOL_TO_ACTION_TYPE[toolName]
+	if (!actionType) {
+		return { text: `Unknown tool: ${toolName}`, isError: true }
+	}
+
+	if (actionType === 'generate-image') {
+		return executeGenerateImage(actionType, input, channel)
+	}
+
+	if (actionType === 'compile-scene') {
+		return executeCompileScene(actionType, input, channel)
+	}
+
+	// Default handler: push complete action immediately
+	channel.push({
+		_type: actionType,
+		...input,
+		complete: true,
+		time: 0,
+	} as any)
+
+	return { text: `Action "${actionType}" executed successfully.` }
+}
+
+async function executeGenerateImage(
+	actionType: string,
+	input: Record<string, unknown>,
+	channel: ActionChannel,
+): Promise<ToolExecutionResult> {
+	const isTransparent = input.transparent === true
+	console.log(`[canvas-tools] generate_image: transparent=${isTransparent}, prompt="${(input.prompt as string)?.slice(0, 80)}"`)
+
+	let result
+	try {
+		result = isTransparent
+			? await generateTransparentImageWithBfl({
+					prompt: input.prompt as string,
+					width: input.width as number | undefined,
+					height: input.height as number | undefined,
+					seed: input.seed as number | undefined,
+				})
+			: await generateImageWithBfl({
+					prompt: input.prompt as string,
+					width: input.width as number | undefined,
+					height: input.height as number | undefined,
+					seed: input.seed as number | undefined,
+				})
+		console.log(`[canvas-tools] generate_image result: success=${result.success}, error=${result.error}`)
+	} catch (error) {
+		console.error('[canvas-tools] generate_image threw:', error)
+		channel.push({
+			_type: actionType,
+			...input,
+			imageError: error instanceof Error ? error.message : String(error),
+			complete: true,
+			time: 0,
+		} as any)
+		return { text: `Image generation failed: ${error instanceof Error ? error.message : String(error)}`, isError: true }
+	}
+
+	channel.push({
+		_type: actionType,
+		...input,
+		imageUrl: result.success ? result.imageUrl : undefined,
+		imageError: result.success ? undefined : result.error,
+		complete: true,
+		time: 0,
+	} as any)
+
+	if (!result.success) {
+		return { text: `Image generation failed: ${result.error}` }
+	}
+
+	const transparentNote = isTransparent ? ' with transparent background' : ''
+	return {
+		text: `Image generated successfully${transparentNote} (${result.width}x${result.height}) and placed at (${input.x}, ${input.y}).`,
+	}
+}
+
+async function executeCompileScene(
+	actionType: string,
+	input: Record<string, unknown>,
+	channel: ActionChannel,
+): Promise<ToolExecutionResult> {
+	// The screenshotDataUrl will be injected by the client-side action util
+	// before this is called. On the server side, we use it as input_image
+	// for img2img generation via the standard BFL API.
+	const screenshotDataUrl = input.screenshotDataUrl as string | undefined
+
+	if (!screenshotDataUrl) {
+		// Push a compile-scene action that the client will handle
+		// The client captures the screenshot and calls /api/compile-scene
+		channel.push({
+			_type: actionType,
+			...input,
+			complete: true,
+			time: 0,
+		} as any)
+
+		return {
+			text: 'Scene compilation initiated. The client will capture the canvas and generate the final image.',
+		}
+	}
+
+	const result = await generateImageWithBfl({
+		prompt: input.prompt as string,
+		input_image: screenshotDataUrl,
+		width: input.width as number | undefined,
+		height: input.height as number | undefined,
 	})
+
+	channel.push({
+		_type: actionType,
+		...input,
+		imageUrl: result.success ? result.imageUrl : undefined,
+		imageError: result.success ? undefined : result.error,
+		complete: true,
+		time: 0,
+	} as any)
+
+	if (!result.success) {
+		return { text: `Scene compilation failed: ${result.error}` }
+	}
+
+	return {
+		text: `Scene compiled successfully (${result.width}x${result.height}) and placed at (${input.x}, ${input.y}).`,
+	}
 }

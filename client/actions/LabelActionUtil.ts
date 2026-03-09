@@ -23,9 +23,13 @@ export const LabelActionUtil = registerActionUtil(
 		static override type = 'label' as const
 
 		override getInfo(action: Streaming<LabelAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shapeId) lines.push(`**Shape:** ${action.shapeId}`)
+			if (action.text !== undefined) lines.push(`**Text:** "${action.text}"`)
 			return {
 				icon: 'pencil' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Setting label...',
 			}
 		}
 

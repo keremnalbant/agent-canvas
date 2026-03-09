@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { AgentMessage, AgentMessageContent } from '../../shared/types/AgentMessage'
 import { AgentPrompt } from '../../shared/types/AgentPrompt'
 import { getPromptPartDefinition, PromptPart } from '../../shared/types/PromptPart'
@@ -6,24 +7,17 @@ import { getPromptPartDefinition, PromptPart } from '../../shared/types/PromptPa
  * Content block types for the Anthropic Messages API.
  */
 type TextBlock = { type: 'text'; text: string }
+type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
 type ImageBlock = {
 	type: 'image'
-	source: { type: 'base64'; media_type: string; data: string }
+	source: { type: 'base64'; media_type: ImageMediaType; data: string }
 }
 type ContentBlock = TextBlock | ImageBlock
 
 /**
- * Message format for the Anthropic Messages API (used by Agent SDK).
- */
-export interface AnthropicMessage {
-	role: 'user' | 'assistant'
-	content: string | ContentBlock[]
-}
-
-/**
  * Build messages from an AgentPrompt in Anthropic Messages API format.
  */
-export function buildMessages(prompt: AgentPrompt): AnthropicMessage[] {
+export function buildMessages(prompt: AgentPrompt): Anthropic.MessageParam[] {
 	const allMessages: AgentMessage[] = []
 
 	for (const part of Object.values(prompt)) {
@@ -88,9 +82,14 @@ function parseDataUrl(dataUrl: string): { mediaType: string; data: string } {
 
 /**
  * Convert AgentMessage[] to Anthropic Messages API format.
+ *
+ * Preserves original user/assistant roles. Consecutive messages with the
+ * same role are merged to satisfy the API's alternating-role requirement.
  */
-function toAnthropicMessages(agentMessages: AgentMessage[]): AnthropicMessage[] {
-	return agentMessages.map((msg) => {
+function toAnthropicMessages(agentMessages: AgentMessage[]): Anthropic.MessageParam[] {
+	const messages: Anthropic.MessageParam[] = []
+
+	for (const msg of agentMessages) {
 		const content: ContentBlock[] = []
 
 		for (const item of msg.content) {
@@ -100,21 +99,35 @@ function toAnthropicMessages(agentMessages: AgentMessage[]): AnthropicMessage[] 
 					type: 'image',
 					source: {
 						type: 'base64',
-						media_type: mediaType,
+						media_type: mediaType as ImageMediaType,
 						data,
 					},
 				})
 			} else if (item.text) {
-				content.push({
-					type: 'text',
-					text: item.text,
-				})
+				content.push({ type: 'text', text: item.text })
 			}
 		}
 
-		return {
-			role: msg.role,
-			content,
+		if (content.length === 0) continue
+
+		const role: 'user' | 'assistant' = msg.role === 'assistant' ? 'assistant' : 'user'
+
+		// Merge consecutive messages with the same role
+		const lastMessage = messages[messages.length - 1]
+		if (lastMessage && lastMessage.role === role) {
+			const lastContent = Array.isArray(lastMessage.content)
+				? lastMessage.content
+				: [{ type: 'text' as const, text: lastMessage.content }]
+			lastMessage.content = [...lastContent, ...content]
+		} else {
+			messages.push({ role, content })
 		}
-	})
+	}
+
+	// Anthropic API requires the first message to be from the user
+	if (messages.length > 0 && messages[0].role === 'assistant') {
+		messages.unshift({ role: 'user', content: '[conversation history follows]' })
+	}
+
+	return messages
 }

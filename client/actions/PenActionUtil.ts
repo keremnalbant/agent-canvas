@@ -11,9 +11,17 @@ export const PenActionUtil = registerActionUtil(
 		static override type = 'pen' as const
 
 		override getInfo(action: Streaming<PenAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shapeId) lines.push(`**ID:** ${action.shapeId}`)
+			if (action.style) lines.push(`**Style:** ${action.style}`)
+			if (action.color) lines.push(`**Color:** ${action.color}`)
+			if (action.fill) lines.push(`**Fill:** ${action.fill}`)
+			if (action.closed !== undefined) lines.push(`**Closed:** ${action.closed}`)
+			if (action.points?.length) lines.push(`**Points:** ${action.points.length}`)
 			return {
 				icon: 'pencil' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || (action.complete ? 'Drew path' : 'Drawing...'),
 			}
 		}
 

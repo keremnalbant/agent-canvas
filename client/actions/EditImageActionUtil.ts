@@ -34,10 +34,24 @@ export const EditImageActionUtil = registerActionUtil(
 		static override type = 'edit-image' as const
 
 		override getInfo(action: Streaming<EditImageAction>) {
-			const description = action.complete ? 'Edited image' : 'Editing image...'
+			const lines: string[] = []
+			if (!action.complete) {
+				lines.push('Editing image...')
+			} else {
+				lines.push('Edited image')
+			}
+			if (action.prompt) lines.push(`**Prompt:** ${action.prompt}`)
+			if (action.input_image) lines.push(`**Source:** ${action.input_image}`)
+			const refs = [action.input_image_2, action.input_image_3, action.input_image_4, action.input_image_5, action.input_image_6, action.input_image_7, action.input_image_8].filter(Boolean)
+			if (refs.length > 0) lines.push(`**References:** ${refs.join(', ')}`)
+			if (action.width || action.height) {
+				lines.push(`**Size:** ${action.width ?? 'auto'}x${action.height ?? 'auto'}`)
+			}
+			if (action.seed !== undefined) lines.push(`**Seed:** ${action.seed}`)
 			return {
 				icon: 'pencil' as const,
-				description,
+				description: lines.join('\n\n'),
+				summary: action.complete ? `Edited image: "${action.prompt?.slice(0, 60)}${(action.prompt?.length ?? 0) > 60 ? '...' : ''}"` : undefined,
 			}
 		}
 
@@ -94,7 +108,7 @@ export const EditImageActionUtil = registerActionUtil(
 				}
 			})
 
-			const response = await fetch('/api/generate-image', {
+			const response = await fetch('/api/edit-image', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(requestBody),

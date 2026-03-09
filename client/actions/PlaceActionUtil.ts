@@ -9,9 +9,17 @@ export const PlaceActionUtil = registerActionUtil(
 		static override type = 'place' as const
 
 		override getInfo(action: Streaming<PlaceAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shapeId) lines.push(`**Shape:** ${action.shapeId}`)
+			if (action.referenceShapeId) lines.push(`**Relative to:** ${action.referenceShapeId}`)
+			if (action.side) lines.push(`**Side:** ${action.side}`)
+			if (action.align) lines.push(`**Align:** ${action.align}`)
+			if (action.sideOffset) lines.push(`**Side offset:** ${action.sideOffset}`)
+			if (action.alignOffset) lines.push(`**Align offset:** ${action.alignOffset}`)
 			return {
 				icon: 'target' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Placing shape...',
 			}
 		}
 

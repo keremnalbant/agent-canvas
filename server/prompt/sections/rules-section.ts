@@ -247,7 +247,45 @@ ${flagged(
 - The edited image will be placed next to the original unless you specify \`x\` and \`y\`.
 - For multi-reference editing, describe which images correspond to which elements in your prompt (e.g., "The person from image 1 with the background from image 2").`
 )}
-- Do not try to create image shapes directly with the \`create_shape\` tool. Always use \`generate_image\` or \`edit_image\`.`
+- Do not try to create image shapes directly with the \`create_shape\` tool. Always use \`generate_image\` or \`edit_image\`.
+${flagged(
+	flags.hasCompileScene,
+	`### Plan Mode (Visual Planning)
+
+When the user enables **plan mode** or asks you to plan a scene, you must:
+
+1. **Think like a scene director.** The user's prompt describes the hero subject and setting, but a great scene needs supporting elements that make it feel alive and believable. Use the \`think\` tool to plan a rich decomposition before generating anything.
+2. **Decompose into background + subjects.** Identify:
+   - The **background/environment** (no subjects, just the setting)
+   - The **hero subject(s)** explicitly mentioned by the user
+   - **Supporting elements** that naturally belong in the scene — props, environmental details, secondary characters. For example:
+     - "a cat on a beach" -> background (sandy beach, ocean, sky), cat (hero), beach umbrella, beach ball, seashells, a distant sailboat, maybe a person sunbathing
+     - "a dog in a park" -> background (green park, trees, path), dog (hero), a bench, a frisbee, birds, flowers, a jogger in the distance
+     - "a coffee shop interior" -> background (cafe interior, counter, shelves), a steaming coffee cup (hero), a pastry on a plate, a book, a potted plant, ambient customers
+   - Aim for **4-8 total elements** (background + hero + 3-6 supporting elements). More elements = richer scene, but don't overdo it.
+3. **Generate the background** using \`generate_image\` (without transparent=true). The background should be the full environment without any subjects.
+4. **Generate each subject** separately using \`generate_image\` with \`transparent=true\`. Each subject should be described in isolation on a transparent background.
+5. **Place all elements** on the canvas with a thoughtful initial arrangement. Place the background first, then layer subjects on top where they would naturally appear. Consider depth — distant objects smaller and higher, foreground objects larger and lower.
+6. **Send a message** explaining the decomposition and that the user can now rearrange, resize, and reposition subjects before compiling.
+
+After the user has arranged the subjects to their liking and asks to compile:
+- Use the \`compile_scene\` tool. The canvas will be automatically captured and used as a spatial reference.
+- The compile prompt is CRITICAL — it must describe the final **unified, cohesive scene** and explicitly instruct the model to blend all elements together naturally. Your prompt MUST include phrases like:
+  - "seamlessly blend all elements into a single cohesive photograph"
+  - "unify lighting, shadows, and color grading across all elements"
+  - "add natural shadows where objects meet the ground"
+  - "harmonize edges so no element looks cut-and-pasted"
+  - "match perspective and depth of field consistently"
+- Describe the full scene as if it were one photograph, mentioning how elements relate to each other spatially and visually (e.g., "a cat sitting on the sand in the foreground casting a soft shadow, with a beach umbrella behind it to the right, waves gently lapping at the shore")
+- NEVER just list the elements — describe the scene as a unified whole with consistent lighting, atmosphere, and style
+
+Tips for plan mode:
+- Each subject prompt should be detailed and describe the subject in isolation (e.g., "a tabby cat sitting relaxed, side view, soft natural lighting, photorealistic" not just "cat")
+- The background prompt should describe the rich environment without subjects (e.g., "tropical beach at sunset, warm golden light, gentle waves, wet sand reflections, distant horizon" not "beach")
+- Vary subject sizes — a beach ball should be smaller than the hero cat, an umbrella should be taller
+- Supporting elements add depth and realism. Think about what objects, people, animals, or details would naturally exist in the described setting
+- Use different dimensions for different subjects — tall objects (umbrella, tree) might be 512x1024, wide objects (bench, surfboard) might be 1024x512`
+)}`
 )}
 
 ${flagged(

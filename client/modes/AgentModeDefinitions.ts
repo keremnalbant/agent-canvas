@@ -7,6 +7,7 @@ import { AlignActionUtil } from '../actions/AlignActionUtil'
 import { BringToFrontActionUtil } from '../actions/BringToFrontActionUtil'
 import { ClearActionUtil } from '../actions/ClearActionUtil'
 import { CountryInfoActionUtil } from '../actions/CountryInfoActionUtil'
+import { CompileSceneActionUtil } from '../actions/CompileSceneActionUtil'
 import { EditImageActionUtil } from '../actions/EditImageActionUtil'
 import { GenerateImageActionUtil } from '../actions/GenerateImageActionUtil'
 import { CountShapesActionUtil } from '../actions/CountShapesActionUtil'
@@ -173,6 +174,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			// Image generation
 			GenerateImageActionUtil.type,
 			EditImageActionUtil.type,
+			CompileSceneActionUtil.type,
 
 			// Internal (required)
 			UnknownActionUtil.type,

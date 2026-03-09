@@ -8,12 +8,12 @@ export const CountryInfoActionUtil = registerActionUtil(
 		static override type = 'countryInfo' as const
 
 		override getInfo(action: Streaming<CountryInfoAction>) {
-			const description = action.complete
-				? 'Searched for country info'
-				: 'Searching for country info'
+			const lines: string[] = []
+			lines.push(action.complete ? 'Searched for country info' : 'Searching for country info...')
+			if (action.code) lines.push(`**Country code:** ${action.code}`)
 			return {
 				icon: 'search' as const,
-				description,
+				description: lines.join('\n\n'),
 			}
 		}
 

@@ -9,9 +9,16 @@ export const MoveActionUtil = registerActionUtil(
 		static override type = 'move' as const
 
 		override getInfo(action: Streaming<MoveAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shapeId) lines.push(`**Shape:** ${action.shapeId}`)
+			if (action.x !== undefined && action.y !== undefined) {
+				lines.push(`**To:** (${action.x}, ${action.y})`)
+			}
+			if (action.anchor) lines.push(`**Anchor:** ${action.anchor}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Moving shape...',
 			}
 		}
 

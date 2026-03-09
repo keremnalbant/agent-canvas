@@ -9,9 +9,12 @@ export const BringToFrontActionUtil = registerActionUtil(
 		static override type = 'bringToFront' as const
 
 		override getInfo(action: Streaming<BringToFrontAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shapeIds?.length) lines.push(`**Shapes:** ${action.shapeIds.join(', ')}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Bringing to front...',
 			}
 		}
 

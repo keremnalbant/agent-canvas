@@ -10,10 +10,17 @@ export const SetMyViewActionUtil = registerActionUtil(
 
 		override getInfo(action: Streaming<SetMyViewAction>) {
 			const label = action.complete ? 'Move camera' : 'Moving camera'
-			const text = action.intent?.startsWith('#') ? `\n\n${action.intent}` : action.intent
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.x !== undefined && action.y !== undefined) {
+				lines.push(`**Position:** (${action.x}, ${action.y})`)
+			}
+			if (action.w !== undefined && action.h !== undefined) {
+				lines.push(`**Viewport:** ${action.w}x${action.h}`)
+			}
 			return {
 				icon: 'eye' as const,
-				description: `**${label}**: ${text ?? ''}`,
+				description: `**${label}**\n\n${lines.join('\n\n')}`,
 			}
 		}
 

@@ -8,12 +8,27 @@ import { useAgent } from '../agent/TldrawAgentAppProvider'
 import { ContextItemTag } from './ContextItemTag'
 import { SelectionTag } from './SelectionTag'
 
+function PlanModeIcon() {
+	return (
+		<svg width="11" height="11" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+			<rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+			<rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+			<rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+			<rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+		</svg>
+	)
+}
+
 export function ChatInput({
 	handleSubmit,
 	inputRef,
+	isPlanMode,
+	onPlanModeToggle,
 }: {
 	handleSubmit: FormEventHandler<HTMLFormElement>
 	inputRef: React.RefObject<HTMLTextAreaElement | null>
+	isPlanMode: boolean
+	onPlanModeToggle: () => void
 }) {
 	const agent = useAgent()
 	const { editor } = agent
@@ -96,6 +111,14 @@ export function ChatInput({
 				/>
 				<span className="chat-actions">
 					<div className="chat-actions-left">
+						<button
+							type="button"
+							className={'chat-plan-mode-toggle' + (isPlanMode ? ' active' : '')}
+							onClick={onPlanModeToggle}
+							title={isPlanMode ? 'Plan mode ON - scenes will be decomposed into subjects' : 'Plan mode OFF'}
+						>
+							<PlanModeIcon /> Plan
+						</button>
 						<div className="chat-model-select">
 							<div className="chat-model-select-label">
 								<BrainIcon /> {modelName}

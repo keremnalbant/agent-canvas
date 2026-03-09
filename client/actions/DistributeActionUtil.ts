@@ -9,9 +9,13 @@ export const DistributeActionUtil = registerActionUtil(
 		static override type = 'distribute' as const
 
 		override getInfo(action: Streaming<DistributeAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.direction) lines.push(`**Direction:** ${action.direction}`)
+			if (action.shapeIds?.length) lines.push(`**Shapes:** ${action.shapeIds.join(', ')}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Distributing shapes...',
 			}
 		}
 

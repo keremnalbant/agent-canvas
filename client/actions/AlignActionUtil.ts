@@ -9,9 +9,14 @@ export const AlignActionUtil = registerActionUtil(
 		static override type = 'align' as const
 
 		override getInfo(action: Streaming<AlignAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.alignment) lines.push(`**Alignment:** ${action.alignment}`)
+			if (action.gap !== undefined) lines.push(`**Gap:** ${action.gap}`)
+			if (action.shapeIds?.length) lines.push(`**Shapes:** ${action.shapeIds.join(', ')}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Aligning shapes...',
 			}
 		}
 

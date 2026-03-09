@@ -14,9 +14,26 @@ export const CreateActionUtil = registerActionUtil(
 		static override type = 'create' as const
 
 		override getInfo(action: Streaming<CreateAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shape) {
+				lines.push(`**Type:** ${action.shape._type}`)
+				if (action.shape.shapeId) lines.push(`**ID:** ${action.shape.shapeId}`)
+				if ('x' in action.shape && 'y' in action.shape) {
+					lines.push(`**Position:** (${action.shape.x}, ${action.shape.y})`)
+				}
+				if ('w' in action.shape && 'h' in action.shape) {
+					lines.push(`**Size:** ${action.shape.w}x${action.shape.h}`)
+				}
+				if ('color' in action.shape) lines.push(`**Color:** ${action.shape.color}`)
+				if ('fill' in action.shape) lines.push(`**Fill:** ${action.shape.fill}`)
+				if ('text' in action.shape && action.shape.text) {
+					lines.push(`**Text:** "${action.shape.text}"`)
+				}
+			}
 			return {
 				icon: 'pencil' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || (action.complete ? 'Created shape' : 'Creating shape...'),
 			}
 		}
 

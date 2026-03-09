@@ -18,11 +18,12 @@ export const GenerateImageAction = z
     width: z.number().optional(),
     height: z.number().optional(),
     seed: z.number().optional(),
+    transparent: z.boolean().optional(),
   })
   .meta({
     title: "Generate Image",
     description:
-      "Generate a new image from a text prompt and place it on the canvas. Specify x and y for where to place the image.",
+      "Generate a new image from a text prompt and place it on the canvas. Specify x and y for where to place the image. Set transparent=true to generate with a transparent background (useful for individual subjects in plan mode).",
   });
 
 export type GenerateImageAction = z.infer<typeof GenerateImageAction>;
@@ -444,6 +445,26 @@ export const UpdateAction = z
   });
 
 export type UpdateAction = z.infer<typeof UpdateAction>;
+// Compile Scene Action (plan mode - compile arranged subjects into final image)
+export const CompileSceneAction = z
+  .object({
+    _type: z.literal("compile-scene"),
+    intent: z.string(),
+    prompt: z.string(),
+    x: z.number(),
+    y: z.number(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    screenshotDataUrl: z.string().optional(),
+  })
+  .meta({
+    title: "Compile Scene",
+    description:
+      "Compile arranged transparent-background subjects and background into a final coherent image. This is used after plan mode arrangement. The canvas screenshot will be automatically captured and used as reference.",
+  });
+
+export type CompileSceneAction = z.infer<typeof CompileSceneAction>;
+
 // Unknown Action (catch-all for unrecognized actions)
 export const UnknownAction = z
   .object({

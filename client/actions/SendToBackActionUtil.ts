@@ -9,9 +9,12 @@ export const SendToBackActionUtil = registerActionUtil(
 		static override type = 'sendToBack' as const
 
 		override getInfo(action: Streaming<SendToBackAction>) {
+			const lines: string[] = []
+			if (action.intent) lines.push(`**Intent:** ${action.intent}`)
+			if (action.shapeIds?.length) lines.push(`**Shapes:** ${action.shapeIds.join(', ')}`)
 			return {
 				icon: 'cursor' as const,
-				description: action.intent ?? '',
+				description: lines.join('\n\n') || 'Sending to back...',
 			}
 		}
 

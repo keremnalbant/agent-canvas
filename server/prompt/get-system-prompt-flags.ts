@@ -39,6 +39,7 @@ export function getSystemPromptFlags(actions: AgentAction['_type'][], parts: Pro
 		// Image generation
 		hasGenerateImage: actions.includes('generate-image'),
 		hasEditImage: actions.includes('edit-image'),
+		hasCompileScene: actions.includes('compile-scene'),
 
 		// Request
 		hasMessagesPart: parts.includes('messages'),

@@ -37,7 +37,10 @@
       }
     ],
     "allowJs": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "exclude": [
     "node_modules"
@@ -47,6 +50,8 @@
     "shared",
     "server",
     "app",
+    "auth.ts",
+    "middleware.ts",
     "next-env.d.ts",
     "next.config.ts",
     ".next/types/**/*.ts",

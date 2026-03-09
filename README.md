@@ -1,55 +1,85 @@
-# tldraw agent
+# tldraw agent canvas
 
-This starter kit demonstrates how to build an agent that can manipulate the [tldraw](https://github.com/tldraw/tldraw) canvas.
+A visual AI agent powered by [tldraw](https://github.com/tldraw/tldraw), [Anthropic Claude](https://docs.anthropic.com/), and [BFL FLUX](https://docs.bfl.ml/) image generation models. The agent can manipulate shapes on a canvas, generate and edit images, and decompose complex scenes into layered compositions.
 
 A chat panel on the right side of the screen lets users communicate with the agent, add context, and see chat history.
 
 ## Environment setup
 
-Create a `.dev.vars` file in the root directory and add API keys for any model providers you want to use.
+Create a `.env` file in the root directory:
 
 ```
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
-GOOGLE_API_KEY=your_google_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
+BFL_API_KEY=your_bfl_api_key_here
+BFL_LABS_API_KEY=your_bfl_labs_api_key_here
 ```
 
-We recommend using Anthropic for best results. Get your API key from the [Anthropic dashboard](https://console.anthropic.com/settings/keys).
+- **ANTHROPIC_API_KEY** - Powers the AI agent via the Anthropic Client SDK. Get yours from the [Anthropic dashboard](https://console.anthropic.com/settings/keys).
+- **BFL_API_KEY** - Standard BFL API for text-to-image generation (`flux-2-pro-preview`). Get yours from [BFL](https://docs.bfl.ml/).
+- **BFL_LABS_API_KEY** - BFL Labs API for transparent background generation (`flux_transparent`).
 
 ## Local development
 
-Install dependencies with `yarn` or `npm install`.
+Install dependencies:
 
-Run the development server with `yarn dev` or `npm run dev`.
+```
+npm install
+```
 
-Open `http://localhost:5173/` in your browser to see the app.
+Run the development server:
 
-## Agent overview
+```
+npm run dev
+```
 
-With its default configuration, the agent can perform the following actions:
+Open `http://localhost:3000/` in your browser.
+
+## Agent capabilities
+
+### Canvas manipulation
 
 - Create, update and delete shapes.
 - Draw freehand pen strokes.
-- Use higher-level operations on multiple shapes at once: Rotate, resize, align, distribute, stack and reorder shapes.
+- Rotate, resize, align, distribute, stack and reorder shapes.
 - Write out its thinking and send messages to the user.
 - Keep track of its task by writing and updating a todo list.
 - Move its viewport to look at different parts of the canvas.
 - Count shapes matching a given expression.
 - Schedule further work and reviews to be carried out in follow-up requests.
-- Call example external APIs: Looking up country information.
+- Call external APIs (e.g. country information lookup).
 
-To make decisions on what to do, we send the agent information from various sources:
+### AI image generation
 
-- The user's message.
-- The user's current selection of shapes.
-- What the user can currently see on their screen.
-- Any additional context that the user has provided, such as specific shapes or a particular position or area on the canvas.
-- Actions the user has recently taken.
-- A screenshot of the agent's current view of the canvas.
+- **Text-to-image** - Generate images from text prompts using BFL FLUX `flux-2-pro-preview`.
+- **Transparent background** - Generate images with transparent backgrounds using BFL Labs `flux_transparent`. Useful for subjects, props, and overlays.
+- **Image editing** - Edit existing images on the canvas using multi-reference BFL capabilities.
+- **Parallel tool execution** - Multiple image generations run concurrently for faster results.
+
+### Visual Plan Mode
+
+Plan Mode enables scene decomposition for complex compositions:
+
+1. **Toggle Plan Mode** in the chat panel to activate scene planning.
+2. **Prompt a scene** (e.g. "a cat on a beach") and the agent decomposes it into layered elements:
+   - One **background** image (opaque, e.g. beach landscape).
+   - One **hero subject** with transparent background (e.g. the cat).
+   - **3-6 supporting elements** with transparent backgrounds (e.g. umbrella, beach ball, seashells, towel).
+3. **Arrange the elements** on the canvas - drag, resize, and position until the composition looks right.
+4. **Click "Compile Scene"** to merge everything into a single cohesive image via BFL img2img, with automatic blending, harmonized lighting, shadows, and perspective.
+
+### Context and decision making
+
+The agent receives information from:
+
+- The user's message and current selection.
+- What the user can see on their screen.
+- Additional context: specific shapes, positions, or areas on the canvas.
+- Recent user actions.
+- A screenshot of the agent's current view.
 - A simplified format of all shapes within the agent's viewport.
-- Information on clusters of shapes outside the agent's viewport.
-- The history of the current session, including the user's messages and all the agent's actions.
-- Lints identifying potential issues with shapes on the canvas.
+- Clusters of shapes outside the viewport.
+- Full session history including messages and actions.
+- Lints identifying potential issues with shapes.
 
 ## Use the agent programmatically
 
@@ -80,11 +110,14 @@ The `TldrawAgent` class has additional methods:
 
 ## Architecture overview
 
-The agent starter is organized into three main areas:
+Built on Next.js App Router with server-side streaming:
 
-- **`client/`** - React components, agent logic, and utils that run in the browser
-- **`worker/`** - Cloudflare Worker that handles model requests and prompt building
-- **`shared/`** - Types, schemas, and utilities shared between client and worker
+- **`client/`** - React components, agent logic, action utils, and prompt parts that run in the browser.
+- **`server/`** - Anthropic Client SDK streaming tool loop, tool definitions, prompt building, and BFL integration.
+- **`shared/`** - Types, Zod schemas, and format converters shared between client and server.
+- **`app/`** - Next.js App Router: `page.tsx` (client entry), `api/stream/route.ts` (SSE streaming), `api/edit-image/route.ts`, `api/compile-scene/route.ts`.
+
+The agent uses the Anthropic Client SDK (`@anthropic-ai/sdk`) with a manual streaming tool loop: `messages.stream()` -> extract `tool_use` blocks -> execute tools (in parallel) -> feed `tool_result` -> loop until complete. Actions stream to the client via SSE for real-time UI feedback.
 
 ## Customize the agent
 
@@ -571,7 +604,7 @@ override getPart(request: AgentRequest, helpers: AgentHelpers): RandomShapePart 
 
 ## Change the system prompt
 
-The system prompt lives in `worker/prompt/buildSystemPrompt.ts`. Edit the sections in `worker/prompt/sections/` to change the system prompt.
+The system prompt lives in `server/prompt/build-system-prompt.ts`. Edit the sections in `server/prompt/sections/` to change the system prompt.
 
 The system prompt is rebuilt for each step in the agentic loop depending on which actions and parts are available in the agent's current mode. If you add new actions or parts, you can give the model more detailed instructions for how to use them in `worker/prompt/sections/rules-section.ts`.
 
@@ -579,27 +612,7 @@ The schema showing the actions the agent can output is also automatically added 
 
 ## Change to a different model
 
-Set an agent's model using the `setModelName` method on the `modelName` manager.
-
-```ts
-agent.modelName.setModelName("gemini-3-flash-preview");
-```
-
-To change the logic for deciding which model to use for a request, you can edit `ModelNamePartUtil`.
-
-## Support a different model
-
-Add the model's definition to `AGENT_MODEL_DEFINITIONS` in `shared/models.ts`.
-
-```ts
-'claude-sonnet-4-5': {
-	name: 'claude-sonnet-4-5',
-	id: 'claude-sonnet-4-5',
-	provider: 'anthropic',
-}
-```
-
-Add extra setup or configuration for your provider in `worker/do/AgentService.ts`.
+The model is configured in `server/agent-service.ts`. The agent currently uses Claude Sonnet 4.6 via the Anthropic Client SDK.
 
 ## Support custom shapes
 
